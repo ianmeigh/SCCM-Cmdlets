@@ -427,29 +427,33 @@ $exceptionList = get-content "C:\Scripts\NexthinkLowDiskSpace\NexthinkLowDiskSpa
         TicketNumber = $item[1]
     }
 }
+if ($NexthinkResults -eq $null) {
+        Write-Log "No results returned from Nexthink"
+} else {
 
-foreach ($result in $NexthinkResults) {
+    foreach ($result in $NexthinkResults) {
             
-    $index = ($customLog | Where-Object { $_.Hostname -contains $result.name })
+        $index = ($customLog | Where-Object { $_.Hostname -contains $result.name })
     
-    if($ExceptionLog.Hostname -contains $result.name) {
-        Write-Log "$($result.name) is contained within the exception list and has been skipped, see exception list for more details."
-    } else {
-        #if the object is not null
-        if (!($null -eq $index)) {
+        if($ExceptionLog.Hostname -contains $result.name) {
+            Write-Log "$($result.name) is contained within the exception list and has been skipped, see exception list for more details."
+        } else {
+            #if the object is not null
+            if (!($null -eq $index)) {
             
-            $existingTicket = Read-Ticket ($index[0].TicketNumber)
+                $existingTicket = Read-Ticket ($index[0].TicketNumber)
 
-            if ($existingTicket.ticket.status -eq "closed") {
+                if ($existingTicket.ticket.status -eq "closed") {
 
-                $existingTicket = Read-Ticket ($index[($index.count - 1)].TicketNumber)
+                    $existingTicket = Read-Ticket ($index[($index.count - 1)].TicketNumber)
+                }
+                $newTicket = Create-Ticket -TicketType $existingTicket.ticket.status -TicketID $existingTicket.ticket.id
+                Write-Ticket -URI $newTicket.URI -Body $newTicket.Body -InvokeMethod $newTicket.InvokeMethod -Action $newTicket.Action
             }
-            $newTicket = Create-Ticket -TicketType $existingTicket.ticket.status -TicketID $existingTicket.ticket.id
-            Write-Ticket -URI $newTicket.URI -Body $newTicket.Body -InvokeMethod $newTicket.InvokeMethod -Action $newTicket.Action
-        }
-        else {
-            $newTicket = Create-Ticket -TicketType "create"
-            Write-Ticket -URI $newTicket.URI -Body $newTicket.Body -InvokeMethod $newTicket.InvokeMethod -Action $newTicket.Action
+            else {
+                $newTicket = Create-Ticket -TicketType "create"
+                Write-Ticket -URI $newTicket.URI -Body $newTicket.Body -InvokeMethod $newTicket.InvokeMethod -Action $newTicket.Action
+            }
         }
     }
 }
